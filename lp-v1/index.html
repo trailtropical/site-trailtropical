@@ -507,20 +507,17 @@
         }
       }
 
-      // VSL + Unlock — detecta CTA da VTurb via postMessage ou tempo (13:41 = 821s)
+      // VSL + Unlock em 13:41 (821s)
       (function() {
-        var LOCKED = true;
-        var lockedContent = document.getElementById("locked-content");
-        var REVEAL_SECONDS = 821; // 13:41 — menor tempo entre os vídeos do AB test
+        var REVEAL_SECONDS = 821;
 
         function doReveal() {
-          if (!LOCKED) return;
-          LOCKED = false;
-          lockedContent.classList.add("unlocked");
-          window.removeEventListener("message", handleMessage);
-          if (pollInterval) clearInterval(pollInterval);
-          if (fallbackTimer) clearTimeout(fallbackTimer);
+          var el = document.getElementById("locked-content");
+          if (el) el.classList.add("unlocked");
         }
+
+        // Timer direto — abre após 821 segundos
+        setTimeout(doReveal, REVEAL_SECONDS * 1000);
 
         // Carrega o player no DOM
         var smartPlayer = document.createElement("vturb-smartplayer");
@@ -535,45 +532,6 @@
         script.src = "https://scripts.converteai.net/5129f968-9c0f-495d-9f4c-842e6c88a022/ab-test/6a5e68b4de64a43f56bcb66e/player.js";
         script.async = true;
         document.head.appendChild(script);
-
-        // ── ESTRATÉGIA 1: postMessage do iframe VTurb ──
-        function handleMessage(event) {
-          if (!LOCKED) return;
-          try {
-            var raw = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-            if (!raw || typeof raw !== "object") return;
-            // Procura qualquer mensagem com tempo do vídeo
-            var ct = raw.currentTime || (raw.data && raw.data.currentTime) || raw.time || raw.t;
-            if (ct !== undefined && Number(ct) >= REVEAL_SECONDS) doReveal();
-            // Detecta eventos de CTA/compra
-            var type = String(raw.type || raw.event || raw.action || '');
-            if (/cta|buy|action|checkout|click/i.test(type)) doReveal();
-          } catch (_) {}
-        }
-        window.addEventListener("message", handleMessage);
-
-        // ── ESTRATÉGIA 2: Polling de <video> no DOM ──
-        var pollInterval = setInterval(function() {
-          if (!LOCKED) return;
-          var videos = document.querySelectorAll("video");
-          for (var i = 0; i < videos.length; i++) {
-            var v = videos[i];
-            if (!isNaN(v.currentTime) && v.currentTime >= REVEAL_SECONDS) {
-              doReveal();
-              return;
-            }
-          }
-        }, 1000);
-
-        // ── ESTRATÉGIA 3: Fallback por tempo (20min = 1200s) ──
-        var fallbackTimer = setTimeout(doReveal, 1200 * 1000);
-
-        // Cleanup
-        window.addEventListener("beforeunload", function() {
-          window.removeEventListener("message", handleMessage);
-          clearInterval(pollInterval);
-          clearTimeout(fallbackTimer);
-        });
       })();
 
       // Sticky CTA: aparece só depois de passar da seção de depoimentos
