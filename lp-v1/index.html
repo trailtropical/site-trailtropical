@@ -507,7 +507,7 @@
         }
       }
 
-      // Unlock: detecta CTA via API do smartplayer
+      // Unlock: descobre API do smartplayer
       (function() {
         var LOCKED = true;
 
@@ -518,47 +518,49 @@
           if (el) el.classList.add("unlocked");
         }
 
-        // Espera o smartplayer criar o elemento interno, depois hook na API
         setTimeout(function() {
-          // Procura qualquer vturb-smartplayer na página
           var check = setInterval(function() {
             if (!LOCKED) { clearInterval(check); return; }
 
-            var players = document.querySelectorAll("vturb-smartplayer");
-            players.forEach(function(player) {
-              // Acessa a API interna do VTurb
-              var sp = player.smartplayer;
-              if (sp && typeof sp.on === "function" && !sp._csdHooked) {
-                sp._csdHooked = true;
-                console.log("[CSD] smartplayer hook OK, id:", player.id);
+            var player = document.querySelector("vturb-smartplayer");
+            if (!player) return;
 
-                sp.on("timeupdate", function(time) {
-                  console.log("[CSD] time:", time);
-                  if (time >= 821) doReveal();
-                });
+            // Loga só uma vez
+            if (!player._csdLogged) {
+              player._csdLogged = true;
+              console.log("[CSD] player found, id:", player.id);
 
-                sp.on("ended", function() {
-                  console.log("[CSD] video ended");
-                  doReveal();
-                });
+              // Lista propriedades que são funções
+              var methods = [];
+              for (var k in player) {
+                if (typeof player[k] === "function" && k !== "constructor") {
+                  methods.push(k);
+                }
               }
+              console.log("[CSD] methods:", methods.join(", "));
 
-              // Fallback: acessa via property do elemento
-              if (!sp && player.getCurrentTime && !player._csdHooked) {
-                player._csdHooked = true;
-                console.log("[CSD] element API hook OK");
+              // Tenta acessar propriedades comuns
+              console.log("[CSD] smartplayer:", typeof player.smartplayer);
+              console.log("[CSD] getCurrentTime:", typeof player.getCurrentTime);
+              console.log("[CSD] player:", typeof player.player);
+              console.log("[CSD] video:", typeof player.video);
+              console.log("[CSD] _player:", typeof player._player);
+              console.log("[CSD] __vue__:", typeof player.__vue__);
 
-                var poll = setInterval(function() {
-                  if (!LOCKED) { clearInterval(poll); return; }
-                  var t = player.getCurrentTime();
-                  console.log("[CSD] time:", t);
-                  if (t >= 821) doReveal();
-                }, 1000);
+              // Tenta encontrar <video> filho
+              var vid = player.querySelector("video");
+              if (vid) {
+                console.log("[CSD] <video> found, currentTime:", vid.currentTime);
+                vid.addEventListener("timeupdate", function() {
+                  console.log("[CSD] video time:", vid.currentTime);
+                  if (vid.currentTime >= 821) doReveal();
+                });
+              } else {
+                console.log("[CSD] no <video> found");
               }
-            });
+            }
           }, 1000);
 
-          // Fallback máximo: 20min
           setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
         }, 3000);
       })();
