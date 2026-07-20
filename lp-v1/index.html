@@ -522,68 +522,24 @@
           var check = setInterval(function() {
             if (!LOCKED) { clearInterval(check); return; }
 
-            var player = document.querySelector("vturb-smartplayer");
-            if (!player || player._csdDone) return;
-
-            if (!player._csdLogged) {
-              player._csdLogged = true;
-
-              // Loga os 3 filhos
-              var children = player.children;
-              for (var i = 0; i < children.length; i++) {
-                var c = children[i];
-                console.log("[CSD] child[" + i + "]:", c.tagName, c.id || "", c.className || "");
-              }
-
-              // Procura <video> em todos os descendentes (incluindo iframes acessíveis)
-              var allVids = player.querySelectorAll("video");
-              console.log("[CSD] videos found:", allVids.length);
-
-              // Procura iframes
-              var iframes = player.querySelectorAll("iframe");
-              console.log("[CSD] iframes found:", iframes.length);
-
-              // Tenta acessar cada iframe
-              iframes.forEach(function(iframe, i) {
-                console.log("[CSD] iframe[" + i + "] src:", (iframe.src || "").substring(0, 80));
-                try {
-                  var doc = iframe.contentDocument || iframe.contentWindow.document;
-                  var v = doc.querySelector("video");
-                  if (v) {
-                    player._csdDone = true;
-                    console.log("[CSD] <video> in iframe!", "currentTime:", v.currentTime);
-                    v.addEventListener("timeupdate", function() {
-                      console.log("[CSD] time:", Math.floor(v.currentTime));
-                      if (v.currentTime >= 821) doReveal();
-                    });
-                  }
-                } catch(e) {
-                  console.log("[CSD] iframe[" + i + "] cross-origin");
-                }
-              });
-
-              // Se nenhum video encontrado, verifica se o player cria <video> depois
-              if (allVids.length === 0 && iframes.length === 0) {
-                console.log("[CSD] no video/iframe yet, children HTML:", player.innerHTML.substring(0, 500));
-              }
-            }
-
-            // Continua tentando encontrar <video> se ainda não achou
-            if (!player._csdDone) {
-              var vids = player.querySelectorAll("video");
-              if (vids.length > 0) {
-                player._csdDone = true;
-                console.log("[CSD] <video> found later!");
-                vids[0].addEventListener("timeupdate", function() {
-                  if (vids[0].currentTime >= 821) doReveal();
+            // Procura <video> em QUALQUER lugar da página
+            var allVids = document.querySelectorAll("video");
+            if (allVids.length > 0 && !window._csdVideoHooked) {
+              window._csdVideoHooked = true;
+              console.log("[CSD] <video> found! count:", allVids.length);
+              allVids.forEach(function(v, i) {
+                console.log("[CSD] video[" + i + "] currentTime:", v.currentTime, "src:", (v.src || v.currentSrc || "").substring(0, 80));
+                v.addEventListener("timeupdate", function() {
+                  console.log("[CSD] time:", Math.floor(v.currentTime));
+                  if (v.currentTime >= 821) doReveal();
                 });
-              }
+              });
             }
 
-          }, 1000);
+          }, 500);
 
           setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
-        }, 5000);
+        }, 8000);
       })();
 
       // VSL: carrega o player VTurb AB test
