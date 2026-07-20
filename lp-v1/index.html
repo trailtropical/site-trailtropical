@@ -507,11 +507,35 @@
         }
       }
 
-      // Unlock: abre após 13:41 (821s)
-      setTimeout(function() {
-        var el = document.getElementById("locked-content");
-        if (el) el.classList.add("unlocked");
-      }, 821000);
+      // Unlock: detecta CTA via postMessage da VTurb
+      (function() {
+        var LOCKED = true;
+
+        function doReveal() {
+          if (!LOCKED) return;
+          LOCKED = false;
+          var el = document.getElementById("locked-content");
+          if (el) el.classList.add("unlocked");
+          window.removeEventListener("message", onMessage);
+        }
+
+        function onMessage(event) {
+          try {
+            var raw = typeof event.data === "string" ? event.data : JSON.stringify(event.data);
+            console.log("[VTURB MSG]", raw);
+            var parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+            if (parsed && typeof parsed === "object") {
+              console.log("[VTURB TYPE]", parsed.type || parsed.event || parsed.action || parsed.name || "unknown");
+            }
+          } catch(e) {}
+        }
+        window.addEventListener("message", onMessage);
+
+        // Fallback: timer de 20min caso nada detecte
+        setTimeout(function() {
+          if (LOCKED) doReveal();
+        }, 1200000);
+      })();
 
       // VSL: carrega o player VTurb AB test
       (function() {
