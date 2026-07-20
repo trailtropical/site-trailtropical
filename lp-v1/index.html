@@ -8,6 +8,14 @@
     <meta property="og:description" content="O método que resolve a causa do ciclo de dor — não apenas o sintoma onde ela aparece.">
     <title>Corredor Sem Dor — Nathan Gossenheimer</title>
     <link rel="icon" type="image/png" href="/lp-v1/logo.png">
+    <script>!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);</script>
+    <link rel="preload" href="https://scripts.converteai.net/5129f968-9c0f-495d-9f4c-842e6c88a022/ab-test/6a5e68b4de64a43f56bcb66e/player.js" as="script">
+    <link rel="preload" href="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js" as="script">
+    <link rel="dns-prefetch" href="https://cdn.converteai.net">
+    <link rel="dns-prefetch" href="https://scripts.converteai.net">
+    <link rel="dns-prefetch" href="https://images.converteai.net">
+    <link rel="dns-prefetch" href="https://m3u8.vturb.net">
+    <link rel="dns-prefetch" href="https://license.vturb.com">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -515,7 +523,7 @@
 
         // Carrega o player no DOM
         var smartPlayer = document.createElement("vturb-smartplayer");
-        smartPlayer.setAttribute("id", "vid-69bca36b596c6131b739c02b");
+        smartPlayer.setAttribute("id", "ab-6a5e68b4de64a43f56bcb66e");
         smartPlayer.style.display = "block";
         smartPlayer.style.margin = "0 auto";
         smartPlayer.style.width = "100%";
@@ -523,14 +531,14 @@
         document.getElementById("vsl-container").appendChild(smartPlayer);
 
         var script = document.createElement("script");
-        script.src = "https://scripts.converteai.net/5129f968-9c0f-495d-9f4c-842e6c88a022/players/69bca36b596c6131b739c02b/v4/player.js";
+        script.src = "https://scripts.converteai.net/5129f968-9c0f-495d-9f4c-842e6c88a022/ab-test/6a5e68b4de64a43f56bcb66e/player.js";
         script.async = true;
         document.head.appendChild(script);
 
         // ── ESTRATÉGIA 1: Eventos nativos do VTurb ──
         function attachVTurbEvents() {
           if (!LOCKED) return;
-          var el = document.getElementById("vid-69bca36b596c6131b739c02b");
+          var el = document.getElementById("vid-6a5e68b4de64a43f56bcb66e");
           if (!el) return false;
 
           // Método A: CustomEvent "timeupdate" com e.detail.currentTime
@@ -579,7 +587,7 @@
               return;
             }
           }
-          var sp = document.getElementById("vid-69bca36b596c6131b739c02b");
+          var sp = document.getElementById("vid-6a5e68b4de64a43f56bcb66e");
           if (sp) {
             var ct = sp.currentTime || (typeof sp.getCurrentTime === "function" ? sp.getCurrentTime() : undefined);
             if (ct !== undefined && ct >= REVEAL_SECONDS) doReveal();
