@@ -517,7 +517,6 @@
           if (!LOCKED) return;
           LOCKED = false;
           lockedContent.classList.add("unlocked");
-          if (retryInterval) clearInterval(retryInterval);
           if (pollInterval) clearInterval(pollInterval);
           if (ctaObserver) ctaObserver.disconnect();
           if (fallbackTimer) clearTimeout(fallbackTimer);
@@ -537,7 +536,19 @@
         script.async = true;
         document.head.appendChild(script);
 
-        // ── ESTRATÉGIA 1: MutationObserver — detecta CTA injetado pela VTurb ──
+        // ── Detecta CTA de compra (só links de checkout/hotmart) ──
+        var CTA_SELECTORS = 'a[href*="hotmart"], a[href*="checkout"], a[href*="pay"], a[href*="comprar"], a[href*="grab"], a[href*="kiwify"], a[href*="eduzz"], a[href*="pay.hotmart"]';
+
+        function hasCheckoutLink(root) {
+          if (!root) return false;
+          // Verifica o elemento raiz
+          if (root.matches && root.matches(CTA_SELECTORS)) return true;
+          // Verifica filhos
+          var found = root.querySelector && root.querySelector(CTA_SELECTORS);
+          return !!found;
+        }
+
+        // ── ESTRATÉGIA 1: MutationObserver ──
         var ctaObserver = null;
         function setupCTAObserver() {
           var container = document.getElementById("vsl-container");
@@ -549,61 +560,29 @@
               var nodes = mutations[i].addedNodes;
               for (var j = 0; j < nodes.length; j++) {
                 var node = nodes[j];
-                if (node.nodeType !== 1) continue; // só elementos
-                // Verifica se é botão/link de CTA da VTurb
-                if (isVTurbCTA(node)) { doReveal(); return; }
-                // Verifica filhos também
-                var cta = node.querySelector && node.querySelector('a[href], button, [class*="cta"], [class*="buy"], [class*="action"], [id*="cta"]');
-                if (cta && isInsideVTurb(cta)) { doReveal(); return; }
+                if (node.nodeType !== 1) continue;
+                if (hasCheckoutLink(node)) { doReveal(); return; }
               }
             }
           });
           ctaObserver.observe(container, { childList: true, subtree: true });
         }
 
-        function isVTurbCTA(el) {
-          var tag = el.tagName.toLowerCase();
-          if (tag === 'a' || tag === 'button') return true;
-          if (el.getAttribute && (el.getAttribute('class') || '').match(/cta|buy|action|hotmart|checkout/i)) return true;
-          return false;
-        }
+        // Espera 3s antes de observar (deixa o player carregar)
+        setTimeout(setupCTAObserver, 3000);
 
-        function isInsideVTurb(el) {
-          var parent = el.closest && el.closest('vturb-smartplayer');
-          return !!parent;
-        }
-
-        setupCTAObserver();
-
-        // ── ESTRATÉGIA 2: Polling — verifica CTA no DOM a cada 500ms ──
+        // ── ESTRATÉGIA 2: Polling — verifica a cada 1s ──
         var pollInterval = setInterval(function() {
           if (!LOCKED) return;
-          var cta = document.querySelector('vturb-smartplayer a[href], vturb-smartplayer button, vturb-smartplayer [class*="cta"], vturb-smartplayer [class*="buy"]');
-          if (cta) { doReveal(); return; }
-        }, 500);
+          var cta = document.querySelector(CTA_SELECTORS);
+          if (cta) { doReveal(); }
+        }, 1000);
 
-        // ── ESTRATÉGIA 3: postMessage do iframe ──
-        function handleMessage(event) {
-          if (!LOCKED) return;
-          try {
-            var raw = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-            if (!raw || typeof raw !== "object") return;
-            // Detecta mensagem de CTA da VTurb
-            var type = raw.type || raw.event || raw.action;
-            if (type && /cta|buy|action|checkout/i.test(type)) { doReveal(); return; }
-            // Fallback: checa tempo
-            var ct = raw.currentTime || (raw.data && raw.data.currentTime) || raw.time || raw.t;
-            if (ct !== undefined && Number(ct) >= REVEAL_SECONDS) doReveal();
-          } catch (_) {}
-        }
-        window.addEventListener("message", handleMessage);
-
-        // ── ESTRATÉGIA 4: Fallback por tempo (20 min = 1200s, rede de segurança) ──
+        // ── ESTRATÉGIA 3: Fallback por tempo (20min) ──
         var fallbackTimer = setTimeout(doReveal, 1200 * 1000);
 
         // Cleanup
         window.addEventListener("beforeunload", function() {
-          window.removeEventListener("message", handleMessage);
           clearInterval(pollInterval);
           if (ctaObserver) ctaObserver.disconnect();
           clearTimeout(fallbackTimer);
