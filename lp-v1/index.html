@@ -507,7 +507,7 @@
         }
       }
 
-      // Unlock: descobre API do smartplayer
+      // Unlock: detecta CTA via Shadow DOM do player
       (function() {
         var LOCKED = true;
 
@@ -524,45 +524,68 @@
 
             var player = document.querySelector("vturb-smartplayer");
             if (!player) return;
+            if (player._csdDone) return;
 
-            // Loga só uma vez
-            if (!player._csdLogged) {
-              player._csdLogged = true;
-              console.log("[CSD] player found, id:", player.id);
-
-              // Lista propriedades que são funções
-              var methods = [];
-              for (var k in player) {
-                if (typeof player[k] === "function" && k !== "constructor") {
-                  methods.push(k);
-                }
-              }
-              console.log("[CSD] methods:", methods.join(", "));
-
-              // Tenta acessar propriedades comuns
-              console.log("[CSD] smartplayer:", typeof player.smartplayer);
-              console.log("[CSD] getCurrentTime:", typeof player.getCurrentTime);
-              console.log("[CSD] player:", typeof player.player);
-              console.log("[CSD] video:", typeof player.video);
-              console.log("[CSD] _player:", typeof player._player);
-              console.log("[CSD] __vue__:", typeof player.__vue__);
-
-              // Tenta encontrar <video> filho
-              var vid = player.querySelector("video");
+            // 1. Tenta shadowRoot
+            var root = player.shadowRoot;
+            if (root) {
+              console.log("[CSD] shadowRoot found!");
+              var vid = root.querySelector("video");
               if (vid) {
-                console.log("[CSD] <video> found, currentTime:", vid.currentTime);
+                player._csdDone = true;
+                console.log("[CSD] <video> in shadow, currentTime:", vid.currentTime);
                 vid.addEventListener("timeupdate", function() {
-                  console.log("[CSD] video time:", vid.currentTime);
                   if (vid.currentTime >= 821) doReveal();
                 });
-              } else {
-                console.log("[CSD] no <video> found");
+                return;
+              }
+              // Procura iframe no shadow
+              var iframe = root.querySelector("iframe");
+              if (iframe) {
+                console.log("[CSD] iframe in shadow found");
+                try {
+                  var doc = iframe.contentDocument;
+                  var v = doc ? doc.querySelector("video") : null;
+                  if (v) {
+                    player._csdDone = true;
+                    console.log("[CSD] <video> in iframe in shadow!");
+                    v.addEventListener("timeupdate", function() {
+                      if (v.currentTime >= 821) doReveal();
+                    });
+                    return;
+                  }
+                } catch(e) {
+                  console.log("[CSD] iframe cross-origin, tentando postMessage");
+                }
               }
             }
+
+            // 2. Tenta via querySelector direto (pode ter mudado)
+            var vid2 = player.querySelector("video");
+            if (vid2) {
+              player._csdDone = true;
+              console.log("[CSD] <video> found directly!");
+              vid2.addEventListener("timeupdate", function() {
+                if (vid2.currentTime >= 821) doReveal();
+              });
+              return;
+            }
+
+            // 3. Tenta dispatch custom event para ver se VTurb responde
+            if (!player._csdTried) {
+              player._csdTried = true;
+              player.dispatchEvent(new CustomEvent("csd-check", { bubbles: true }));
+              console.log("[CSD] shadowRoot:", !!root, "children:", player.childElementCount);
+              if (root) {
+                console.log("[CSD] shadow children:", root.childElementCount);
+                console.log("[CSD] shadow HTML:", root.innerHTML.substring(0, 300));
+              }
+            }
+
           }, 1000);
 
           setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
-        }, 3000);
+        }, 5000);
       })();
 
       // VSL: carrega o player VTurb AB test
