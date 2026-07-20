@@ -507,7 +507,7 @@
         }
       }
 
-      // Unlock: detecta CTA via poll no player
+      // Unlock: detecta CTA via API do smartplayer
       (function() {
         var LOCKED = true;
 
@@ -516,52 +516,51 @@
           LOCKED = false;
           var el = document.getElementById("locked-content");
           if (el) el.classList.add("unlocked");
-          clearInterval(poll);
         }
 
-        var poll = setInterval(function() {
-          if (!LOCKED) return;
-          var player = document.querySelector("vturb-smartplayer");
-          if (!player) return;
+        // Espera o smartplayer criar o elemento interno, depois hook na API
+        setTimeout(function() {
+          // Procura qualquer vturb-smartplayer na página
+          var check = setInterval(function() {
+            if (!LOCKED) { clearInterval(check); return; }
 
-          // Verifica shadow DOM
-          if (player.shadowRoot) {
-            var inside = player.shadowRoot.innerHTML;
-            if (inside && inside.length > 100) {
-              console.log("[SHADOW ROOT]", inside.substring(0, 500));
-            }
-          }
+            var players = document.querySelectorAll("vturb-smartplayer");
+            players.forEach(function(player) {
+              // Acessa a API interna do VTurb
+              var sp = player.smartplayer;
+              if (sp && typeof sp.on === "function" && !sp._csdHooked) {
+                sp._csdHooked = true;
+                console.log("[CSD] smartplayer hook OK, id:", player.id);
 
-          // Verifica iframe dentro do player
-          var iframes = player.querySelectorAll("iframe");
-          iframes.forEach(function(iframe, i) {
-            try {
-              var doc = iframe.contentDocument || iframe.contentWindow.document;
-              if (doc) {
-                var links = doc.querySelectorAll("a[href], button");
-                if (links.length > 0) {
-                  console.log("[IFRAME CTA]", i, "links:", links.length);
-                  links.forEach(function(l) {
-                    console.log("  -", l.tagName, l.href || l.textContent.substring(0, 50));
-                  });
+                sp.on("timeupdate", function(time) {
+                  console.log("[CSD] time:", time);
+                  if (time >= 821) doReveal();
+                });
+
+                sp.on("ended", function() {
+                  console.log("[CSD] video ended");
                   doReveal();
-                }
+                });
               }
-            } catch(e) {
-              // cross-origin
-            }
-          });
 
-          // Verifica filhos diretos
-          var html = player.innerHTML;
-          if (html.indexOf("cta") !== -1 || html.indexOf("buy") !== -1 || html.indexOf("checkout") !== -1) {
-            console.log("[PLAYER HTML CTA]");
-            doReveal();
-          }
-        }, 2000);
+              // Fallback: acessa via property do elemento
+              if (!sp && player.getCurrentTime && !player._csdHooked) {
+                player._csdHooked = true;
+                console.log("[CSD] element API hook OK");
 
-        // Fallback: 20min
-        setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
+                var poll = setInterval(function() {
+                  if (!LOCKED) { clearInterval(poll); return; }
+                  var t = player.getCurrentTime();
+                  console.log("[CSD] time:", t);
+                  if (t >= 821) doReveal();
+                }, 1000);
+              }
+            });
+          }, 1000);
+
+          // Fallback máximo: 20min
+          setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
+        }, 3000);
       })();
 
       // VSL: carrega o player VTurb AB test
