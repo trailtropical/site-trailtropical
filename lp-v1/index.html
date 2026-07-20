@@ -507,7 +507,7 @@
         }
       }
 
-      // Unlock: detecta CTA via MutationObserver no player
+      // Unlock: detecta CTA via poll no player
       (function() {
         var LOCKED = true;
 
@@ -516,30 +516,52 @@
           LOCKED = false;
           var el = document.getElementById("locked-content");
           if (el) el.classList.add("unlocked");
+          clearInterval(poll);
         }
 
-        // Espera o player carregar, depois começa a observar
-        setTimeout(function() {
+        var poll = setInterval(function() {
+          if (!LOCKED) return;
           var player = document.querySelector("vturb-smartplayer");
-          if (!player) { doReveal(); return; }
+          if (!player) return;
 
-          var childCount = player.childElementCount;
+          // Verifica shadow DOM
+          if (player.shadowRoot) {
+            var inside = player.shadowRoot.innerHTML;
+            if (inside && inside.length > 100) {
+              console.log("[SHADOW ROOT]", inside.substring(0, 500));
+            }
+          }
 
-          var observer = new MutationObserver(function() {
-            if (!LOCKED) return;
-            var newCount = player.childElementCount;
-            if (newCount > childCount) {
-              console.log("[CTA DETECTED] children:", childCount, "->", newCount);
-              doReveal();
-              observer.disconnect();
+          // Verifica iframe dentro do player
+          var iframes = player.querySelectorAll("iframe");
+          iframes.forEach(function(iframe, i) {
+            try {
+              var doc = iframe.contentDocument || iframe.contentWindow.document;
+              if (doc) {
+                var links = doc.querySelectorAll("a[href], button");
+                if (links.length > 0) {
+                  console.log("[IFRAME CTA]", i, "links:", links.length);
+                  links.forEach(function(l) {
+                    console.log("  -", l.tagName, l.href || l.textContent.substring(0, 50));
+                  });
+                  doReveal();
+                }
+              }
+            } catch(e) {
+              // cross-origin
             }
           });
 
-          observer.observe(player, { childList: true, subtree: true });
+          // Verifica filhos diretos
+          var html = player.innerHTML;
+          if (html.indexOf("cta") !== -1 || html.indexOf("buy") !== -1 || html.indexOf("checkout") !== -1) {
+            console.log("[PLAYER HTML CTA]");
+            doReveal();
+          }
+        }, 2000);
 
-          // Fallback: 20min
-          setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
-        }, 5000);
+        // Fallback: 20min
+        setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
       })();
 
       // VSL: carrega o player VTurb AB test
