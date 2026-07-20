@@ -507,7 +507,7 @@
         }
       }
 
-      // Unlock: encontra <video> no player VTurb
+      // Unlock: tenta API do VTurb de varias formas
       (function() {
         var LOCKED = true;
 
@@ -522,24 +522,59 @@
           var check = setInterval(function() {
             if (!LOCKED) { clearInterval(check); return; }
 
-            // Procura <video> em QUALQUER lugar da página
-            var allVids = document.querySelectorAll("video");
-            if (allVids.length > 0 && !window._csdVideoHooked) {
-              window._csdVideoHooked = true;
-              console.log("[CSD] <video> found! count:", allVids.length);
-              allVids.forEach(function(v, i) {
-                console.log("[CSD] video[" + i + "] currentTime:", v.currentTime, "src:", (v.src || v.currentSrc || "").substring(0, 80));
-                v.addEventListener("timeupdate", function() {
-                  console.log("[CSD] time:", Math.floor(v.currentTime));
-                  if (v.currentTime >= 821) doReveal();
-                });
+            var player = document.querySelector("vturb-smartplayer");
+            if (!player || player._csdDone) return;
+            player._csdDone = true;
+
+            // Método 1: on() direto no elemento
+            if (typeof player.on === "function") {
+              console.log("[CSD] player.on found!");
+              player.on("timeupdate", function(t) {
+                console.log("[CSD] timeupdate via player.on:", t);
+                if (t >= 821) doReveal();
               });
+              player.on("ended", function() { doReveal(); });
+              return;
             }
 
-          }, 500);
+            // Método 2: .smartplayer.on
+            var sp = player.smartplayer;
+            if (sp && typeof sp.on === "function") {
+              console.log("[CSD] smartplayer.on found!");
+              sp.on("timeupdate", function(t) {
+                console.log("[CSD] timeupdate via smartplayer.on:", t);
+                if (t >= 821) doReveal();
+              });
+              return;
+            }
+
+            // Método 3: addEventListener "timeupdate" no elemento
+            var found = false;
+            player.addEventListener("timeupdate", function(e) {
+              console.log("[CSD] timeupdate via addEventListener:", e.detail || e);
+              var t = (e.detail && e.detail.currentTime) || 0;
+              if (t >= 821) doReveal();
+              found = true;
+            });
+
+            // Método 4: propriedade .on como event target
+            console.log("[CSD] player.on type:", typeof player.on);
+            console.log("[CSD] player.smartplayer type:", typeof player.smartplayer);
+            console.log("[CSD] player.play type:", typeof player.play);
+
+            // Método 5: procura por algum objeto com .on no window
+            for (var k in window) {
+              try {
+                if (window[k] && typeof window[k] === "object" && typeof window[k].on === "function" && window[k].currentTime !== undefined) {
+                  console.log("[CSD] found on window:", k);
+                }
+              } catch(e) {}
+            }
+
+          }, 1000);
 
           setTimeout(function() { if (LOCKED) doReveal(); }, 1200000);
-        }, 8000);
+        }, 5000);
       })();
 
       // VSL: carrega o player VTurb AB test
