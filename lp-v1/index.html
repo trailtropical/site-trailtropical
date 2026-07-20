@@ -507,7 +507,7 @@
         }
       }
 
-      // Unlock: detecta CTA via Shadow DOM do player
+      // Unlock: encontra <video> no player VTurb
       (function() {
         var LOCKED = true;
 
@@ -523,62 +523,60 @@
             if (!LOCKED) { clearInterval(check); return; }
 
             var player = document.querySelector("vturb-smartplayer");
-            if (!player) return;
-            if (player._csdDone) return;
+            if (!player || player._csdDone) return;
 
-            // 1. Tenta shadowRoot
-            var root = player.shadowRoot;
-            if (root) {
-              console.log("[CSD] shadowRoot found!");
-              var vid = root.querySelector("video");
-              if (vid) {
-                player._csdDone = true;
-                console.log("[CSD] <video> in shadow, currentTime:", vid.currentTime);
-                vid.addEventListener("timeupdate", function() {
-                  if (vid.currentTime >= 821) doReveal();
-                });
-                return;
+            if (!player._csdLogged) {
+              player._csdLogged = true;
+
+              // Loga os 3 filhos
+              var children = player.children;
+              for (var i = 0; i < children.length; i++) {
+                var c = children[i];
+                console.log("[CSD] child[" + i + "]:", c.tagName, c.id || "", c.className || "");
               }
-              // Procura iframe no shadow
-              var iframe = root.querySelector("iframe");
-              if (iframe) {
-                console.log("[CSD] iframe in shadow found");
+
+              // Procura <video> em todos os descendentes (incluindo iframes acessíveis)
+              var allVids = player.querySelectorAll("video");
+              console.log("[CSD] videos found:", allVids.length);
+
+              // Procura iframes
+              var iframes = player.querySelectorAll("iframe");
+              console.log("[CSD] iframes found:", iframes.length);
+
+              // Tenta acessar cada iframe
+              iframes.forEach(function(iframe, i) {
+                console.log("[CSD] iframe[" + i + "] src:", (iframe.src || "").substring(0, 80));
                 try {
-                  var doc = iframe.contentDocument;
-                  var v = doc ? doc.querySelector("video") : null;
+                  var doc = iframe.contentDocument || iframe.contentWindow.document;
+                  var v = doc.querySelector("video");
                   if (v) {
                     player._csdDone = true;
-                    console.log("[CSD] <video> in iframe in shadow!");
+                    console.log("[CSD] <video> in iframe!", "currentTime:", v.currentTime);
                     v.addEventListener("timeupdate", function() {
+                      console.log("[CSD] time:", Math.floor(v.currentTime));
                       if (v.currentTime >= 821) doReveal();
                     });
-                    return;
                   }
                 } catch(e) {
-                  console.log("[CSD] iframe cross-origin, tentando postMessage");
+                  console.log("[CSD] iframe[" + i + "] cross-origin");
                 }
+              });
+
+              // Se nenhum video encontrado, verifica se o player cria <video> depois
+              if (allVids.length === 0 && iframes.length === 0) {
+                console.log("[CSD] no video/iframe yet, children HTML:", player.innerHTML.substring(0, 500));
               }
             }
 
-            // 2. Tenta via querySelector direto (pode ter mudado)
-            var vid2 = player.querySelector("video");
-            if (vid2) {
-              player._csdDone = true;
-              console.log("[CSD] <video> found directly!");
-              vid2.addEventListener("timeupdate", function() {
-                if (vid2.currentTime >= 821) doReveal();
-              });
-              return;
-            }
-
-            // 3. Tenta dispatch custom event para ver se VTurb responde
-            if (!player._csdTried) {
-              player._csdTried = true;
-              player.dispatchEvent(new CustomEvent("csd-check", { bubbles: true }));
-              console.log("[CSD] shadowRoot:", !!root, "children:", player.childElementCount);
-              if (root) {
-                console.log("[CSD] shadow children:", root.childElementCount);
-                console.log("[CSD] shadow HTML:", root.innerHTML.substring(0, 300));
+            // Continua tentando encontrar <video> se ainda não achou
+            if (!player._csdDone) {
+              var vids = player.querySelectorAll("video");
+              if (vids.length > 0) {
+                player._csdDone = true;
+                console.log("[CSD] <video> found later!");
+                vids[0].addEventListener("timeupdate", function() {
+                  if (vids[0].currentTime >= 821) doReveal();
+                });
               }
             }
 
