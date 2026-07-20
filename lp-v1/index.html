@@ -507,31 +507,28 @@
         }
       }
 
-      // VSL + Unlock em 13:41 (821s)
+      // Unlock: abre após 13:41 (821s)
+      setTimeout(function() {
+        var el = document.getElementById("locked-content");
+        if (el) el.classList.add("unlocked");
+      }, 821000);
+
+      // VSL: carrega o player VTurb AB test
       (function() {
-        var REVEAL_SECONDS = 821;
+        try {
+          var smartPlayer = document.createElement("vturb-smartplayer");
+          smartPlayer.setAttribute("id", "ab-6a5e68b4de64a43f56bcb66e");
+          smartPlayer.style.display = "block";
+          smartPlayer.style.margin = "0 auto";
+          smartPlayer.style.width = "100%";
+          smartPlayer.style.maxWidth = "460px";
+          document.getElementById("vsl-container").appendChild(smartPlayer);
 
-        function doReveal() {
-          var el = document.getElementById("locked-content");
-          if (el) el.classList.add("unlocked");
-        }
-
-        // Timer direto — abre após 821 segundos
-        setTimeout(doReveal, REVEAL_SECONDS * 1000);
-
-        // Carrega o player no DOM
-        var smartPlayer = document.createElement("vturb-smartplayer");
-        smartPlayer.setAttribute("id", "ab-6a5e68b4de64a43f56bcb66e");
-        smartPlayer.style.display = "block";
-        smartPlayer.style.margin = "0 auto";
-        smartPlayer.style.width = "100%";
-        smartPlayer.style.maxWidth = "460px";
-        document.getElementById("vsl-container").appendChild(smartPlayer);
-
-        var script = document.createElement("script");
-        script.src = "https://scripts.converteai.net/5129f968-9c0f-495d-9f4c-842e6c88a022/ab-test/6a5e68b4de64a43f56bcb66e/player.js";
-        script.async = true;
-        document.head.appendChild(script);
+          var script = document.createElement("script");
+          script.src = "https://scripts.converteai.net/5129f968-9c0f-495d-9f4c-842e6c88a022/ab-test/6a5e68b4de64a43f56bcb66e/player.js";
+          script.async = true;
+          document.head.appendChild(script);
+        } catch(e) {}
       })();
 
       // Sticky CTA: aparece só depois de passar da seção de depoimentos
