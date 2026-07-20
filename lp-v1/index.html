@@ -507,11 +507,11 @@
         }
       }
 
-      // VSL + Unlock em 15:19 (919s) — 4 estratégias paralelas
+      // VSL + Unlock — detecta CTA da VTurb (funciona para qualquer vídeo)
       (function() {
-        var REVEAL_SECONDS = 919;
         var LOCKED = true;
         var lockedContent = document.getElementById("locked-content");
+        var REVEAL_SECONDS = 919; // fallback máximo (15:19)
 
         function doReveal() {
           if (!LOCKED) return;
@@ -519,6 +519,8 @@
           lockedContent.classList.add("unlocked");
           if (retryInterval) clearInterval(retryInterval);
           if (pollInterval) clearInterval(pollInterval);
+          if (ctaObserver) ctaObserver.disconnect();
+          if (fallbackTimer) clearTimeout(fallbackTimer);
         }
 
         // Carrega o player no DOM
@@ -535,75 +537,75 @@
         script.async = true;
         document.head.appendChild(script);
 
-        // ── ESTRATÉGIA 1: Eventos nativos do VTurb ──
-        function attachVTurbEvents() {
-          if (!LOCKED) return;
-          var el = document.getElementById("vid-6a5e68b4de64a43f56bcb66e");
-          if (!el) return false;
+        // ── ESTRATÉGIA 1: MutationObserver — detecta CTA injetado pela VTurb ──
+        var ctaObserver = null;
+        function setupCTAObserver() {
+          var container = document.getElementById("vsl-container");
+          if (!container) return;
 
-          // Método A: CustomEvent "timeupdate" com e.detail.currentTime
-          if (typeof el.addEventListener === "function") {
-            el.addEventListener("timeupdate", function(e) {
-              var t = (e.detail && e.detail.currentTime) || e.currentTime || 0;
-              if (t >= REVEAL_SECONDS) doReveal();
-            });
-          }
-
-          // Método B: API .on("timeupdate", cb) do smartplayer
-          var sp = el.smartplayer || el;
-          if (typeof sp.on === "function") {
-            sp.on("timeupdate", function(t) {
-              if (t >= REVEAL_SECONDS) doReveal();
-            });
-          }
-          return true;
+          ctaObserver = new MutationObserver(function(mutations) {
+            if (!LOCKED) return;
+            for (var i = 0; i < mutations.length; i++) {
+              var nodes = mutations[i].addedNodes;
+              for (var j = 0; j < nodes.length; j++) {
+                var node = nodes[j];
+                if (node.nodeType !== 1) continue; // só elementos
+                // Verifica se é botão/link de CTA da VTurb
+                if (isVTurbCTA(node)) { doReveal(); return; }
+                // Verifica filhos também
+                var cta = node.querySelector && node.querySelector('a[href], button, [class*="cta"], [class*="buy"], [class*="action"], [id*="cta"]');
+                if (cta && isInsideVTurb(cta)) { doReveal(); return; }
+              }
+            }
+          });
+          ctaObserver.observe(container, { childList: true, subtree: true });
         }
 
-        attachVTurbEvents();
-        var retryInterval = setInterval(function() {
-          if (LOCKED) attachVTurbEvents();
-        }, 2000);
+        function isVTurbCTA(el) {
+          var tag = el.tagName.toLowerCase();
+          if (tag === 'a' || tag === 'button') return true;
+          if (el.getAttribute && (el.getAttribute('class') || '').match(/cta|buy|action|hotmart|checkout/i)) return true;
+          return false;
+        }
 
-        // ── ESTRATÉGIA 2: postMessage do iframe ──
+        function isInsideVTurb(el) {
+          var parent = el.closest && el.closest('vturb-smartplayer');
+          return !!parent;
+        }
+
+        setupCTAObserver();
+
+        // ── ESTRATÉGIA 2: Polling — verifica CTA no DOM a cada 500ms ──
+        var pollInterval = setInterval(function() {
+          if (!LOCKED) return;
+          var cta = document.querySelector('vturb-smartplayer a[href], vturb-smartplayer button, vturb-smartplayer [class*="cta"], vturb-smartplayer [class*="buy"]');
+          if (cta) { doReveal(); return; }
+        }, 500);
+
+        // ── ESTRATÉGIA 3: postMessage do iframe ──
         function handleMessage(event) {
           if (!LOCKED) return;
           try {
             var raw = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
             if (!raw || typeof raw !== "object") return;
+            // Detecta mensagem de CTA da VTurb
+            var type = raw.type || raw.event || raw.action;
+            if (type && /cta|buy|action|checkout/i.test(type)) { doReveal(); return; }
+            // Fallback: checa tempo
             var ct = raw.currentTime || (raw.data && raw.data.currentTime) || raw.time || raw.t;
             if (ct !== undefined && Number(ct) >= REVEAL_SECONDS) doReveal();
           } catch (_) {}
         }
         window.addEventListener("message", handleMessage);
 
-        // ── ESTRATÉGIA 3: Polling de <video> no DOM ──
-        var pollInterval = setInterval(function() {
-          if (!LOCKED) return;
-          var videos = document.querySelectorAll("video");
-          for (var i = 0; i < videos.length; i++) {
-            var v = videos[i];
-            if (!isNaN(v.currentTime) && v.currentTime >= REVEAL_SECONDS) {
-              doReveal();
-              return;
-            }
-          }
-          var sp = document.getElementById("vid-6a5e68b4de64a43f56bcb66e");
-          if (sp) {
-            var ct = sp.currentTime || (typeof sp.getCurrentTime === "function" ? sp.getCurrentTime() : undefined);
-            if (ct !== undefined && ct >= REVEAL_SECONDS) doReveal();
-          }
-        }, 1000);
+        // ── ESTRATÉGIA 4: Fallback por tempo (20 min = 1200s, rede de segurança) ──
+        var fallbackTimer = setTimeout(doReveal, 1200 * 1000);
 
-        // ── ESTRATÉGIA 4: Timer de fallback (rede de segurança) ──
-        var elapsed = performance.now() / 1000;
-        var remaining = Math.max(0, REVEAL_SECONDS - elapsed);
-        var fallbackTimer = setTimeout(doReveal, remaining * 1000);
-
-        // Cleanup no unload (opcional, para evitar leaks)
+        // Cleanup
         window.addEventListener("beforeunload", function() {
           window.removeEventListener("message", handleMessage);
           clearInterval(pollInterval);
-          clearInterval(retryInterval);
+          if (ctaObserver) ctaObserver.disconnect();
           clearTimeout(fallbackTimer);
         });
       })();
