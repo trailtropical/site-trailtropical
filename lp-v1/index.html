@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src="https://nathanapi.trailtropical.com.br/94msxlbraorqe.js?"+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','3ala=DBVPKDU%2FTyInSEBdUyYwShNMQEFQVAYCWAUADggeFh4KARsMAB5MDwocXA0T');</script>
+    <!-- End Google Tag Manager -->
     <meta name="description" content="Corredor Sem Dor — O método que resolve a causa do ciclo de dor na corrida. Protocolo da Corrida Funcional por Nathan Gossenheimer.">
     <meta property="og:title" content="Corredor Sem Dor — Nathan Gossenheimer">
     <meta property="og:description" content="O método que resolve a causa do ciclo de dor — não apenas o sintoma onde ela aparece.">
@@ -46,6 +49,9 @@
     </style>
   </head>
   <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://nathanapi.trailtropical.com.br/ns.html?id=GTM-NB9222TR" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
     <!-- URGENCY BANNER -->
     <div class="w-full bg-gradient-to-r from-[#FF5C00] to-[#E04800] py-3 px-4 text-center">
       <p class="uppercase tracking-wider text-black text-lg md:text-lg font-montserrat font-bold" id="urgency-text"></p>
@@ -314,7 +320,52 @@
 
     <!-- SCRIPTS -->
     <script>
-      var CHECKOUT_URL = "https://pay.hotmart.com/I98276864D?bid=1779716323144&utm_source=organic&utm_campaign=&utm_medium=&utm_content=&utm_term=&xcod=&sck=v3_cab0577f-38a2-4131-b11e-546c1a7d034a_69bca4beb1f8e9f7f4f0715d_0_t-11_s-4";
+      var HOTMART_BASE = "https://pay.hotmart.com/I98276864D?off=78x4phvf";
+
+      function handleCheckout() {
+        var userId = "";
+        try { userId = sessionStorage.getItem("user_id_mh"); } catch(e) {}
+        if (!userId) {
+          try { userId = getCookie("user_id_mh"); } catch(e) {}
+        }
+        if (!userId) {
+          userId = "mh_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+        }
+        try { sessionStorage.setItem("user_id_mh", userId); } catch(e) {}
+        setCookie("user_id_mh", userId, 365);
+
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: "custom_begin_checkout", user_id_mh: userId });
+
+        var urlParams = new URLSearchParams(window.location.search);
+        urlParams.set("xcod", userId);
+
+        if (!urlParams.has("sck")) {
+          var utmParts = [];
+          ["utm_source","utm_medium","utm_campaign","utm_content"].forEach(function(p) {
+            if (urlParams.has(p)) utmParts.push(urlParams.get(p));
+          });
+          if (utmParts.length > 0) urlParams.set("sck", utmParts.join("|"));
+        }
+
+        if (!urlParams.has("src")) {
+          var path = window.location.pathname.replace(/\//g, "").replace(/[^a-z0-9]/gi, "_") || "default";
+          urlParams.set("src", path);
+        }
+
+        var finalUrl = HOTMART_BASE + "&" + urlParams.toString();
+        setTimeout(function() { window.location.href = finalUrl; }, 400);
+      }
+
+      function setCookie(name, value, days) {
+        var expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + expires + ";path=/;SameSite=Lax;Secure";
+      }
+
+      function getCookie(name) {
+        var match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+        return match ? decodeURIComponent(match[2]) : null;
+      }
     </script>
     <script>
       // Urgency Banner
@@ -332,7 +383,8 @@
         else div.className = "inline-block";
 
         var a = document.createElement("a");
-        a.href = CHECKOUT_URL;
+        a.href = "#";
+        a.onclick = function(e) { e.preventDefault(); handleCheckout(); };
         a.target = "_blank";
         a.rel = "noopener noreferrer";
         a.className = "inline-block bg-[#FF5C00] text-white font-bold text-base px-10 py-4 rounded-full hover:bg-[#E04800] hover:shadow-[0_0_30px_rgba(255,92,0,0.35)] transition-all duration-300 animate-pulse-slow";
@@ -465,7 +517,8 @@
       document.getElementById("final-cta").appendChild(createCTA("GARANTIR ACESSO AGORA", false, "14 dias de garantia · Sem risco"));
       document.getElementById("sticky-cta").appendChild((function() {
         var a = document.createElement("a");
-        a.href = CHECKOUT_URL;
+        a.href = "#";
+        a.onclick = function(e) { e.preventDefault(); handleCheckout(); };
         a.target = "_blank";
         a.rel = "noopener noreferrer";
         a.className = "block text-center bg-[#FF5C00] text-white font-bold text-sm py-3.5 rounded-full hover:bg-[#E04800] transition-colors";
