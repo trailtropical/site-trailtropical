@@ -339,23 +339,13 @@
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({ event: "custom_begin_checkout", user_id_mh: userId });
 
-        var urlParams = new URLSearchParams(window.location.search);
-        urlParams.set("xcod", userId);
-
-        if (!urlParams.has("sck")) {
-          var utmParts = [];
-          ["utm_source","utm_medium","utm_campaign","utm_content"].forEach(function(p) {
-            if (urlParams.has(p)) utmParts.push(urlParams.get(p));
-          });
-          if (utmParts.length > 0) urlParams.set("sck", utmParts.join("|"));
+        // Don't rebuild href from scratch — VTurb may have already injected
+        // its conversion key (src, xcod, sck). Only append our user_id
+        // under a non-conflicting param name to avoid overwriting VTurb.
+        if (anchor.href.indexOf("mh_uid=") === -1) {
+          var sep = anchor.href.indexOf("?") === -1 ? "?" : "&";
+          anchor.href += sep + "mh_uid=" + encodeURIComponent(userId);
         }
-
-        if (!urlParams.has("src")) {
-          var path = window.location.pathname.replace(/\//g, "").replace(/[^a-z0-9]/gi, "_") || "default";
-          urlParams.set("src", path);
-        }
-
-        anchor.href = HOTMART_BASE + "&" + urlParams.toString();
       }
 
       function setCookie(name, value, days) {
