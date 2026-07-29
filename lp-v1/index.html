@@ -353,8 +353,27 @@
         window.dataLayer.push({ event: "custom_begin_checkout", user_id_mh: userId });
 
         // VTurb already injected its conversion key (src) into the href.
-        // Preserve it — only add xcod with our user_id if VTurb didn't set it.
+        // Preserve it — only add params missing from the checkout URL.
         var finalUrl = anchor.href;
+        var pageParams = new URLSearchParams(window.location.search);
+
+        // Forward sck: use from page URL if present (e.g. Meta Ads),
+        // otherwise build from UTMs
+        if (finalUrl.indexOf("sck=") === -1) {
+          if (pageParams.has("sck")) {
+            finalUrl += (finalUrl.indexOf("?") === -1 ? "?" : "&") + "sck=" + encodeURIComponent(pageParams.get("sck"));
+          } else {
+            var utmParts = [];
+            ["utm_source","utm_medium","utm_campaign","utm_content"].forEach(function(p) {
+              if (pageParams.has(p)) utmParts.push(pageParams.get(p));
+            });
+            if (utmParts.length > 0) {
+              finalUrl += (finalUrl.indexOf("?") === -1 ? "?" : "&") + "sck=" + encodeURIComponent(utmParts.join("|"));
+            }
+          }
+        }
+
+        // Always add xcod with user_id if not already present
         if (finalUrl.indexOf("xcod=") === -1) {
           var sep = finalUrl.indexOf("?") === -1 ? "?" : "&";
           finalUrl += sep + "xcod=" + encodeURIComponent(userId);
