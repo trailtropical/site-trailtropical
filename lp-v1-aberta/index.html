@@ -324,6 +324,7 @@
       var HOTMART_BASE = "https://pay.hotmart.com/I98276864D?off=78x4phvf";
 
       function handleCheckout(event) {
+        event.preventDefault();
         var anchor = event.currentTarget;
         var userId = "";
         try { userId = sessionStorage.getItem("user_id_mh"); } catch(e) {}
@@ -339,13 +340,15 @@
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({ event: "custom_begin_checkout", user_id_mh: userId });
 
-        // Don't rebuild href from scratch — VTurb may have already injected
-        // its conversion key (src, xcod, sck). Only append our user_id
-        // under a non-conflicting param name to avoid overwriting VTurb.
-        if (anchor.href.indexOf("mh_uid=") === -1) {
-          var sep = anchor.href.indexOf("?") === -1 ? "?" : "&";
-          anchor.href += sep + "mh_uid=" + encodeURIComponent(userId);
+        // VTurb already injected its conversion key (src, xcod, sck) into the href.
+        // Preserve it — only append our user_id under a non-conflicting name.
+        var finalUrl = anchor.href;
+        if (finalUrl.indexOf("mh_uid=") === -1) {
+          var sep = finalUrl.indexOf("?") === -1 ? "?" : "&";
+          finalUrl += sep + "mh_uid=" + encodeURIComponent(userId);
         }
+
+        setTimeout(function() { window.location.href = finalUrl; }, 400);
       }
 
       function setCookie(name, value, days) {
