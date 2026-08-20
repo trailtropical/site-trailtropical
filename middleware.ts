@@ -1,4 +1,4 @@
-export const config = { matcher: '/lp-v1' };
+export const config = { matcher: ['/lp-v1', '/lp-v1-aberta'] };
 
 export default function middleware(request: Request) {
   const url = new URL(request.url);
@@ -6,7 +6,12 @@ export default function middleware(request: Request) {
   const match = cookies.match(/co_variant=(a|b)/);
 
   const variant = match ? match[1] : Math.random() < 0.7 ? 'a' : 'b';
-  url.pathname = variant === 'a' ? '/lp-a' : '/lp-b';
+
+  if (url.pathname === '/lp-v1-aberta') {
+    url.pathname = variant === 'a' ? '/lp-a-aberta' : '/lp-b-aberta';
+  } else {
+    url.pathname = variant === 'a' ? '/lp-a' : '/lp-b';
+  }
 
   return new Response(null, {
     status: 307,
