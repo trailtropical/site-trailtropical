@@ -43,15 +43,44 @@
 
     <!-- Conteúdo oculto: só aparece quando a VTurb liberar -->
     <div id="locked-content">
-      <p class="text-white text-lg md:text-xl font-bold font-montserrat text-center mb-4">
-        Garanta sua vaga no botão abaixo ⬇️
-      </p>
-      <div class="w-full max-w-[400px]">
-        <a href="https://clkdmg.site/pay/programa-de-acompanhamento-corredor-sem-dor/1click" class="inline-block w-full bg-[#FF5C00] text-white font-bold text-lg px-10 py-5 rounded-full hover:bg-[#E04800] hover:shadow-[0_0_30px_rgba(255,92,0,0.35)] transition-all duration-300 animate-pulse-slow font-montserrat text-center" style="box-shadow: inset 0 2px 4px rgba(255,255,255,0.15), 0 4px 20px rgba(255,92,0,0.2);">
-          adicionar à minha compra
-        </a>
+      <div id="offer-cta">
+        <p class="text-white text-lg md:text-xl font-bold font-montserrat text-center mb-4">
+          Garanta sua vaga no botão abaixo ⬇️
+        </p>
+        <div class="w-full max-w-[400px] flex flex-col-reverse min-[420px]:flex-row items-stretch gap-3">
+          <button type="button" id="decline-btn" class="px-4 py-4 rounded-full border border-white/25 bg-transparent text-white/70 hover:text-white hover:border-white/50 hover:bg-white/5 transition-colors font-bold text-sm font-montserrat whitespace-nowrap">
+            não, obrigado
+          </button>
+          <a href="https://clkdmg.site/pay/programa-de-acompanhamento-corredor-sem-dor/1click" class="flex-1 bg-[#FF5C00] text-white font-bold text-sm px-4 py-4 rounded-full hover:bg-[#E04800] hover:shadow-[0_0_30px_rgba(255,92,0,0.35)] transition-all duration-300 animate-pulse-slow font-montserrat text-center whitespace-nowrap" style="box-shadow: inset 0 2px 4px rgba(255,255,255,0.15), 0 4px 20px rgba(255,92,0,0.2);">
+            adicionar à minha compra
+          </a>
+        </div>
+      </div>
+
+      <div id="decline-message" class="hidden w-full max-w-[440px] mx-auto text-center">
+        <p class="text-white text-xl font-black font-montserrat mb-2">Tudo certo! ✅</p>
+        <p class="text-gray-300 text-base leading-relaxed">
+          Enviamos o acesso ao app para o <span class="text-white font-bold">seu e-mail</span>.
+          Confira sua caixa de entrada (e o spam) para começar a usar.
+        </p>
       </div>
     </div>
+
+    <script>
+      (function () {
+        var declineBtn = document.getElementById('decline-btn');
+        var offer = document.getElementById('offer-cta');
+        var message = document.getElementById('decline-message');
+        if (!declineBtn) return;
+
+        declineBtn.addEventListener('click', function () {
+          offer.classList.add('hidden');
+          message.classList.remove('hidden');
+          if (window.dataLayer) window.dataLayer.push({ event: 'decline_upsell' });
+          // Futuro: redirecionar para a página de downsell
+        });
+      })();
+    </script>
 
   </body>
 </html>
